@@ -1,0 +1,15 @@
+job:
+  name: directory
+  description: Get files in a directory
+  command:
+    linux: ls -l {directory}
+    windows: dir {directory}
+    macos: ls -l {directory}
+  parameters:
+      directory:
+        description: The directory to list
+        required: true
+        type: string
+  return:
+    description: The list of files in the directory
+    type: list[string]
