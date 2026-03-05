@@ -3,6 +3,7 @@ project(web_agent)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# ------
 # External libraries
 include(FetchContent)
 
@@ -19,6 +20,11 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# json
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+# ------
 #Internal libraries
 add_library(agent STATIC)
 target_sources(agent PRIVATE libs/agent/src/agent.cpp)
@@ -27,6 +33,7 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/agent/include>
         $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(agent PRIVATE nlohmann_json::nlohmann_json)
 
 add_library(api STATIC)
 target_sources(api PRIVATE libs/api/src/api.cpp)
@@ -35,8 +42,9 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/api/include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(api PRIVATE cpr::cpr)
+target_link_libraries(api PRIVATE cpr::cpr nlohmann_json::nlohmann_json)
 
+# ------
 # TESTS
 enable_testing()
 
@@ -46,6 +54,12 @@ add_executable(tests
 
 target_link_libraries(tests GTest::gtest_main)
 
+# ------
 # EXECUTABLE
 add_executable(web_agent main.cpp)
-target_link_libraries(web_agent PRIVATE agent api cpr::cpr)
+target_link_libraries(web_agent PRIVATE
+    agent
+    api
+    cpr::cpr
+    nlohmann_json::nlohmann_json
+)
