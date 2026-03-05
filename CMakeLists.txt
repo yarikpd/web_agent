@@ -48,4 +48,4 @@ target_link_libraries(tests GTest::gtest_main)
 
 # EXECUTABLE
 add_executable(web_agent main.cpp)
-target_link_libraries(web_agent PRIVATE agent api)
+target_link_libraries(web_agent PRIVATE agent api cpr::cpr)
