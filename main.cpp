@@ -1,6 +1,5 @@
-#include <iostream>
-
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    // TODO: in the start of main we log it to logs.txt that the program has started, and in the end of main we log that the program has ended.
+
     return 0;
 }
