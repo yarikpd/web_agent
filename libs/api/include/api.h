@@ -44,9 +44,10 @@ public:
     /**
      * Uploads task execution result to `/wa_result` as `multipart/form-data`.
      * @param result_code Result code where `0` means success and negative values mean errors.
-     * @param result_json JSON string with task execution payload.
+     * @param message Human-readable task execution message.
+     * @param session_id Task execution session identifier.
      * @param files Paths to files that will be sent as `file1`, `file2`, and so on.
      * @return `TaskResultResponse` with unified error information.
      */
-    [[nodiscard]] TaskResultResponse send_task_result(int result_code, const std::string& result_json, const std::vector<std::string>& files) const;
+    [[nodiscard]] TaskResultResponse send_task_result(int result_code, const std::string& message, const std::string& session_id, const std::vector<std::string>& files) const;
 };

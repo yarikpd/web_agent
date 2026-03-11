@@ -187,7 +187,7 @@ NewTaskResponse Api::new_tasks() {
     }
 }
 
-TaskResultResponse Api::send_task_result(const int result_code, const std::string& result_json, const std::vector<std::string>& files) const {
+TaskResultResponse Api::send_task_result(const int result_code, const std::string& message, const std::string& session_id, const std::vector<std::string>& files) const {
     if (access_code.empty()) {
         std::cerr << "Access code is empty. Please register the agent first." << std::endl;
         return TaskResultResponse{false, make_error(-1001, "Access code is empty. Please register the agent first.")};
@@ -201,9 +201,17 @@ TaskResultResponse Api::send_task_result(const int result_code, const std::strin
     }
 
     try {
+        const nlohmann::json result_payload = {
+            {"UID", uid},
+            {"access_code", access_code},
+            {"message", message},
+            {"files", static_cast<int>(files.size())},
+            {"session_id", session_id}
+        };
+
         std::vector<cpr::Part> parts;
         parts.emplace_back("result_code", result_code);
-        parts.emplace_back("result", result_json, "application/json");
+        parts.emplace_back("result", result_payload.dump(), "application/json");
         for (size_t i = 0; i < files.size(); ++i) {
             const std::string field_name = "file" + std::to_string(i + 1);
             parts.emplace_back(field_name, cpr::Files{cpr::File{files[i]}});
