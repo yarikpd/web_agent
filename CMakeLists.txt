@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.14)
 project(web_agent)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -60,7 +60,16 @@ add_executable(tests
     tests/main_tests.cpp
 )
 
-target_link_libraries(tests GTest::gtest_main)
+target_link_libraries(tests
+    GTest::gtest_main
+    api
+    classes
+    cpr::cpr
+    nlohmann_json::nlohmann_json
+)
+target_compile_definitions(api PRIVATE UNIT_TESTS)
+include(GoogleTest)
+gtest_discover_tests(tests)
 
 # ------
 # EXECUTABLE

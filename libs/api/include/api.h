@@ -13,13 +13,15 @@ class Api {
     std::string uid;
     std::string description;
 
+
+//следующие 5 методов перешли из прайвита в паблик пушо я хуй знает почему тесты не работают с прайвит калом
+public:
     static std::string extract_code_response(const nlohmann::json& json_response);
     static std::string extract_msg(const nlohmann::json& json_response);
     static std::map<std::string, std::string> extract_options(const nlohmann::json& json_response);
     static int parse_code_response(const std::string& code_response);
     static ApiError make_error(int code, std::string message, std::string status = "");
 
-public:
     /**
      * Creates API client for web-agent backend.
      * @param api_url Base API URL.
