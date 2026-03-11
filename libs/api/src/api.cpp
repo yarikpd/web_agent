@@ -61,48 +61,62 @@ ApiError Api::make_error(const int code, std::string message, std::string status
 Api::Api(std::string api_url, std::string uid, std::string description)
     : api_url(std::move(api_url)), uid(std::move(uid)), description(std::move(description)) {}
 
-bool Api::register_agent() {
+RegisterAgentResponse Api::register_agent() {
     std::ofstream logs;
     logs.open("logs.txt", std::ios::app);
     if (!logs.is_open()) {
         std::cerr << "Failed to open logs.txt for writing." << std::endl;
-        return false;
+        return RegisterAgentResponse{false, make_error(-1002, "Failed to open logs.txt for writing."), ""};
     }
 
     try {
+        const nlohmann::json request_body = {
+            {"UID", uid},
+            {"descr", description}
+        };
+
         cpr::Response response = cpr::Post(
             cpr::Url{ api_url + "/wa_reg"},
-            cpr::Body(
-                R"({"uid": ")" + uid + R"(", "descr": ")" + description + "\"}"
-            )
+            cpr::Body(request_body.dump())
         );
 
         if (response.status_code == 200) {
             const nlohmann::json json_response = nlohmann::json::parse(response.text);
             const std::string code_response = extract_code_response(json_response);
-            if (code_response == "0") {
+            const int code_response_int = parse_code_response(code_response);
+            const std::string status = json_response.value("status", "");
+            if (code_response_int == 0) {
                 access_code = json_response.value("access_code", "");
                 logs << "----------\n" << "Successfully registered agent with UID: " << uid << "\n";
 
-                return true;
+                return RegisterAgentResponse{true, make_error(0, "", status), access_code};
             }
+            const std::string message = extract_msg(json_response);
             logs << "----------\n" << "Failed to register agent with UID: " << uid << "\n"
                  << "API responded with code_response: " << code_response << "\n"
-                 << "Response message: " << extract_msg(json_response) << "\n";
+                 << "Response message: " << message << "\n";
 
-            return false;
+            return RegisterAgentResponse{false, make_error(code_response_int, message, status), ""};
         }
 
         logs << "----------\n" << "Failed to register agent with UID: " << uid << "\n"
              << "Status Code: " << response.status_code << "\n"
              << "Response Body: " << response.text << "\n";
 
-        return false;
+        return RegisterAgentResponse{
+            false,
+            make_error(-1003, "Unexpected HTTP status code: " + std::to_string(response.status_code)),
+            ""
+        };
     } catch (std::exception& e) {
         logs << "----------\n" << "Exception occurred while registering agent with UID: " << uid << "\n"
              << "Exception message: " << e.what() << "\n";
 
-        return false;
+        return RegisterAgentResponse{
+            false,
+            make_error(-1004, std::string("Exception occurred while registering agent: ") + e.what()),
+            ""
+        };
     }
 }
 

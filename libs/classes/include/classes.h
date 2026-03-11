@@ -11,6 +11,15 @@ struct ApiError {
     std::string status;
 };
 
+struct RegisterAgentResponse {
+    // True when registration request completed successfully.
+    bool success;
+    // Unified error payload for programmatic handling.
+    ApiError error;
+    // Access code received from API after successful registration.
+    std::string access_code;
+};
+
 struct NewTaskResponse {
     // True when request processing succeeded (task received or no task available).
     bool success;
