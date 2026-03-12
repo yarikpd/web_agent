@@ -33,7 +33,7 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 FetchContent_MakeAvailable(json)
 
 # ------
-#Internal libraries
+# Internal libraries
 add_library(agent STATIC)
 target_sources(agent PRIVATE libs/agent/src/agent.cpp)
 target_include_directories(
@@ -65,7 +65,7 @@ target_include_directories(
 enable_testing()
 
 add_executable(tests
-    tests/main_tests.cpp
+    tests/api_tests.cpp
 )
 
 target_link_libraries(tests
@@ -89,4 +89,5 @@ target_link_libraries(web_agent PRIVATE
     classes
     cpr::cpr
     nlohmann_json::nlohmann_json
+    dotenv
 )
