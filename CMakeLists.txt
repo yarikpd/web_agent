@@ -20,6 +20,14 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Dotenv
+FetchContent_Declare(
+        dotenv
+        GIT_REPOSITORY https://github.com/laserpants/dotenv-cpp.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(dotenv)
+
 # json
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
@@ -66,6 +74,7 @@ target_link_libraries(tests
     classes
     cpr::cpr
     nlohmann_json::nlohmann_json
+    dotenv
 )
 target_compile_definitions(api PRIVATE UNIT_TESTS)
 include(GoogleTest)

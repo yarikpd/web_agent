@@ -7,9 +7,12 @@
 #include <fstream>   // для std::ofstream
 #include <chrono>    // для тестов производительности
 #include <ctime>     // для time(nullptr)
+#include <dotenv.h>
 
 // Вспомогательная функция для получения переменных окружения
 std::string get_env(const std::string& key, const std::string& default_value = "") {
+    dotenv::init();
+
     if (const char* env = std::getenv(key.c_str())) {
         return std::string(env);
     }
