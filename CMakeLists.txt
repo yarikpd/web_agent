@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.14)
 project(web_agent)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -20,12 +20,20 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Dotenv
+FetchContent_Declare(
+        dotenv
+        GIT_REPOSITORY https://github.com/laserpants/dotenv-cpp.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(dotenv)
+
 # json
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
 # ------
-#Internal libraries
+# Internal libraries
 add_library(agent STATIC)
 target_sources(agent PRIVATE libs/agent/src/agent.cpp)
 target_include_directories(
@@ -57,10 +65,20 @@ target_include_directories(
 enable_testing()
 
 add_executable(tests
-    tests/main_tests.cpp
+    tests/api_tests.cpp
 )
 
-target_link_libraries(tests GTest::gtest_main)
+target_link_libraries(tests
+    GTest::gtest_main
+    api
+    classes
+    cpr::cpr
+    nlohmann_json::nlohmann_json
+    dotenv
+)
+target_compile_definitions(api PRIVATE UNIT_TESTS)
+include(GoogleTest)
+gtest_discover_tests(tests)
 
 # ------
 # EXECUTABLE
@@ -71,4 +89,5 @@ target_link_libraries(web_agent PRIVATE
     classes
     cpr::cpr
     nlohmann_json::nlohmann_json
+    dotenv
 )

@@ -256,3 +256,4 @@ FodyWeavers.xsd
 *.msm
 *.msp
 *.sln.iml
+logs.txt

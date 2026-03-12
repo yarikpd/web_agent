@@ -13,6 +13,8 @@ class Api {
     std::string uid;
     std::string description;
 
+    friend class ApiTestAccessor;
+
     static std::string extract_code_response(const nlohmann::json& json_response);
     static std::string extract_msg(const nlohmann::json& json_response);
     static std::map<std::string, std::string> extract_options(const nlohmann::json& json_response);

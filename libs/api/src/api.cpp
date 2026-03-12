@@ -77,7 +77,8 @@ RegisterAgentResponse Api::register_agent() {
 
         cpr::Response response = cpr::Post(
             cpr::Url{ api_url + "/wa_reg"},
-            cpr::Body(request_body.dump())
+            cpr::Body(request_body.dump()),
+            cpr::Header{{"Content-Type", "application/json"}}
         );
 
         if (response.status_code == 200) {
@@ -142,7 +143,8 @@ NewTaskResponse Api::new_tasks() {
 
         cpr::Response response = cpr::Post(
             cpr::Url{ api_url + "/wa_task"},
-            cpr::Body(request_body.dump())
+            cpr::Body(request_body.dump()),
+            cpr::Header{{"Content-Type", "application/json"}}
         );
 
         if (response.status_code == 200) {
