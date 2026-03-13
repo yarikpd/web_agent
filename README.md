@@ -70,4 +70,61 @@ Team Lead: Полосухин Ярослав
 
 ## 🇬🇧 English version
 
-пупупупу
+## Object-Oriented and Template-Based Programming (IT TOP)
+
+**Web-Agent** is a lightweight, cross-platform application that runs in the background and bridges actions on a web page with the execution of programs on a local computer. The agent polls a remote server, receives instructions (run a program, move files), and sends results back. The project is designed for parallel processing of tasks from multiple users.
+
+## Description
+This project was implemented based on technical specifications and represents a background service (web agent) that acts as an executor of commands from a remote server.
+
+**Core Business Logic:**
+1.  Server Polling: The agent periodically contacts the server via HTTP/HTTPS.
+2.  Task Acquisition: The server returns an instruction (e.g., which program to run).
+3.  Execution: The agent launches the program, waits for its completion, and processes the results (moves files).
+4.  Reporting: The agent sends the results (files, execution codes) back to the server and logs every action.
+
+### Libraries:
+1) HTTP Library: [CPR](https://github.com/libcpr/cpr)
+2) JSON Parser: [nlohmann/json](https://github.com/nlohmann/json)
+3) TESTS: [Google Test](https://github.com/google/googletest)
+
+### Building
+Before building cmake project, make shure you have installed [meson](https://mesonbuild.com/):
+1) For MacOs:
+```bash
+brew install meson ninja
+```
+Or if you don't have homebrew, follow instructions in [official documentations](https://mesonbuild.com/SimpleStart.html#without-homebrew).
+
+2) For Debian, Ubuntu and derivatives:
+```bash
+sudo apt install meson ninja-build
+```
+
+3) For Fedora, Centos, RHEL and derivatives: 
+```bash
+sudo dnf install meson ninja-build
+```
+
+4) For Arch: 
+```bash
+sudo pacman -S meson
+```
+
+5) For Windows:
+Follow instructions in [official documentations](https://mesonbuild.com/SimpleStart.html#windows1)
+
+## Роли
+Team Lead: Polosukhin Yaroslav
+
+System Architect: Vakov Egor
+
+Developer 1: Kanaev Andrey
+
+Developer 2: Dubinina Yelizaveta
+
+Developer 3: Yefimenko Kirill 
+
+QA Engineer: Penov Mikhail
+
+Tech Writer: Itskhakina Valentina
