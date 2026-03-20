@@ -52,6 +52,7 @@ Follow instructions in [official documentations](https://mesonbuild.com/SimpleSt
 1) HTTP Library: [CPR](https://github.com/libcpr/cpr)
 2) JSON Parser: [nlohmann/json](https://github.com/nlohmann/json)
 3) TESTS: [Google Test](https://github.com/google/googletest)
+4) Dotenv: [dotenv-cpp](https://github.com/laserpants/dotenv-cpp)
 
 ## Роли
 Team Lead: Полосухин Ярослав
