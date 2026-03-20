@@ -15,6 +15,7 @@
   },
   "return": {
     "description": "The list of files in the directory",
-    "type": "list[string]"
+    "type": "list[string]",
+    "source": "command_output"
   }
 }
