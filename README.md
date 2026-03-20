@@ -87,6 +87,7 @@ This project was implemented based on technical specifications and represents a 
 1) HTTP Library: [CPR](https://github.com/libcpr/cpr)
 2) JSON Parser: [nlohmann/json](https://github.com/nlohmann/json)
 3) TESTS: [Google Test](https://github.com/google/googletest)
+4) Dotenv: [dotenv-cpp](https://github.com/laserpants/dotenv-cpp)
 
 ### Building
 Before building cmake project, make shure you have installed [meson](https://mesonbuild.com/):

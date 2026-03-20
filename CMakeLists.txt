@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.14)
 project(web_agent)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -20,12 +20,20 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Dotenv
+FetchContent_Declare(
+        dotenv
+        GIT_REPOSITORY https://github.com/laserpants/dotenv-cpp.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(dotenv)
+
 # json
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
 # ------
-#Internal libraries
+# Internal libraries
 add_library(agent STATIC)
 target_sources(agent PRIVATE libs/agent/src/agent.cpp)
 target_include_directories(
@@ -33,7 +41,7 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/agent/include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(agent PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(agent PRIVATE nlohmann_json::nlohmann_json classes)
 
 add_library(api STATIC)
 target_sources(api PRIVATE libs/api/src/api.cpp)
@@ -42,17 +50,35 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/api/include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(api PRIVATE cpr::cpr nlohmann_json::nlohmann_json)
+target_link_libraries(api PRIVATE cpr::cpr nlohmann_json::nlohmann_json classes)
+
+add_library(classes STATIC)
+target_sources(classes PRIVATE libs/classes/src/classes.cpp)
+target_include_directories(
+        classes PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/classes/include>
+        $<INSTALL_INTERFACE:include>
+)
 
 # ------
 # TESTS
 enable_testing()
 
 add_executable(tests
-        tests/main_tests.cpp
+    tests/api_tests.cpp
 )
 
-target_link_libraries(tests GTest::gtest_main)
+target_link_libraries(tests
+    GTest::gtest_main
+    api
+    classes
+    cpr::cpr
+    nlohmann_json::nlohmann_json
+    dotenv
+)
+target_compile_definitions(api PRIVATE UNIT_TESTS)
+include(GoogleTest)
+gtest_discover_tests(tests)
 
 # ------
 # EXECUTABLE
@@ -60,6 +86,8 @@ add_executable(web_agent main.cpp)
 target_link_libraries(web_agent PRIVATE
     agent
     api
+    classes
     cpr::cpr
     nlohmann_json::nlohmann_json
+    dotenv
 )
