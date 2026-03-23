@@ -31,9 +31,9 @@ std::string f(const std::string &name, std::map<std::string, std::string> args) 
     std::string res = "Nothing";
 
     if (name == "create_file") {
-        create_file(std::move(args));
+        res = create_file(std::move(args));
     } else if (name == "directory") {
-        directory(args);
+        res = directory(args);
     } else {
         std::cout << "There is no such command";
         return "Error";
@@ -43,8 +43,8 @@ std::string f(const std::string &name, std::map<std::string, std::string> args) 
 }
 
 std::string directory(std::map<std::string, std::string> args) {
-    std::ifstream f("jobs/directory.json");
-    json data = json::parse(f);
+    std::ifstream file("../jobs/directory.json");
+    json data = json::parse(file);
     std::string command = data["command"][OS_NAME];
 
     if (!replacePlaceholder(command, "{directory}", args["directory"])) {
@@ -55,8 +55,8 @@ std::string directory(std::map<std::string, std::string> args) {
 }
 
 std::string create_file(std::map<std::string, std::string> args) {
-    std::ifstream f("jobs/create_file.json");
-    json data = json::parse(f);
+    std::ifstream file("../jobs/create_file.json");
+    json data = json::parse(file);
     std::string command = data["command"][OS_NAME];
 
     if (!replacePlaceholder(command, "{directory}", args["directory"])) return "Error";
