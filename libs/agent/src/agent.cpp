@@ -27,73 +27,26 @@ std::string execCommand(const std::string &cmd) {
 }
 
 
-std::string f(const std::string &name, std::map<std::string, std::string> args) {
+std::string f(const std::string &name, const std::map<std::string, std::string>& args) {
     std::string res = "Nothing";
-
-    if (name == "create_file") {
-        res = create_file(std::move(args));
-    } else if (name == "directory") {
-        res = directory(args);
-    } else {
-        std::cout << "There is no such command";
-        return "Error";
-    }
-
-    return res;
-}
-
-std::string directory(std::map<std::string, std::string> args) {
-    std::ifstream file("../jobs/directory.json");
+    std::ifstream file("../jobs/" + name + ".json");
     json data = json::parse(file);
-    std::string command = data["command"][OS_NAME];
 
-    if (!replacePlaceholder(command, "{directory}", args["directory"])) {
-        return "Error";
+    std::string command = data["command"][OS_NAME];
+    for (const auto&[key, value]: args) {
+        replacePlaceholder(command, "{" + key + "}", value);
     }
 
     return execCommand(command);
 }
 
-std::string create_file(std::map<std::string, std::string> args) {
-    std::ifstream file("../jobs/create_file.json");
-    json data = json::parse(file);
-    std::string command = data["command"][OS_NAME];
 
-    if (!replacePlaceholder(command, "{directory}", args["directory"])) return "Error";
-    if (!replacePlaceholder(command, "{filename}", args["filename"])) return "Error";
-
-
-    return execCommand(command);
-}
-
-bool replacePlaceholder(std::string &command,
+void replacePlaceholder(std::string &command,
                         const std::string &placeholder,
                         const std::string &value) {
-    if (command.empty()) {
-        std::cerr << "Error: the command is empty" << std::endl;
-        return false;
-    }
 
-    if (placeholder.empty()) {
-        std::cerr << "Error: the placeholder is empty" << std::endl;
-        return false;
-    }
-
-    if (value.empty()) {
-        std::cerr << "Error: the value is empty" << std::endl;
-        return false;
-    }
-
-    size_t pos = command.find(placeholder);
-    if (pos == std::string::npos) {
-        std::cerr << "Warning: placeholder '" << placeholder << "' not found" << std::endl;
-        return false;
-    }
-
+    //TODO проверить все аргументы правильности и их значения
+    const size_t pos = command.find(placeholder);
     command.replace(pos, placeholder.length(), value);
-    return true;
 }
 
-void tets() {
-    std::cout << "!";
-}

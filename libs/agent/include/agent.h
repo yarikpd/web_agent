@@ -25,16 +25,10 @@
 #endif
 
 
-void tets();
-
 std::string execCommand(const std::string &cmd);
 
-std::string f(const std::string &name, std::map<std::string, std::string> args);
+std::string f(const std::string &name, const std::map<std::string, std::string>& args);
 
-std::string directory(std::map<std::string, std::string> args);
-
-std::string create_file(std::map<std::string, std::string> args);
-
-bool replacePlaceholder(std::string &command,
+void replacePlaceholder(std::string &command,
                         const std::string &placeholder,
                         const std::string &value);
