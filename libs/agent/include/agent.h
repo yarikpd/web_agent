@@ -24,10 +24,20 @@
 #define PCLOSE pclose
 #endif
 
+struct AgentError {
+    int code;
+    std::string message;
+};
 
-std::string execCommand(const std::string &cmd);
+struct AgentCommandResponse {
+    bool success;
+    AgentError error;
+    std::string output;
+};
 
-std::string f(const std::string &name, const std::map<std::string, std::string>& args);
+AgentCommandResponse execCommand(const std::string &cmd);
+
+AgentCommandResponse f(const std::string &name, const std::map<std::string, std::string>& args);
 
 void replacePlaceholder(std::string &command,
                         const std::string &placeholder,

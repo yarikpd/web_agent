@@ -41,7 +41,7 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/agent/include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(agent PRIVATE nlohmann_json::nlohmann_json classes)
+target_link_libraries(agent PRIVATE nlohmann_json::nlohmann_json classes dotenv)
 
 add_library(api STATIC)
 target_sources(api PRIVATE libs/api/src/api.cpp)
@@ -50,7 +50,13 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/api/include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(api PRIVATE cpr::cpr nlohmann_json::nlohmann_json classes)
+target_link_libraries(api
+        PUBLIC
+        nlohmann_json::nlohmann_json
+        classes
+        PRIVATE
+        cpr::cpr
+)
 
 add_library(classes STATIC)
 target_sources(classes PRIVATE libs/classes/src/classes.cpp)
@@ -66,11 +72,13 @@ enable_testing()
 
 add_executable(tests
     tests/api_tests.cpp
+    tests/agent_tests.cpp
 )
 
 target_link_libraries(tests
     GTest::gtest_main
     api
+    agent
     classes
     cpr::cpr
     nlohmann_json::nlohmann_json
@@ -83,6 +91,11 @@ gtest_discover_tests(tests)
 # ------
 # EXECUTABLE
 add_executable(web_agent main.cpp)
+target_include_directories(web_agent PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/agent/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/api/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/classes/include
+)
 target_link_libraries(web_agent PRIVATE
     agent
     api
