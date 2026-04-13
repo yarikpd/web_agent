@@ -97,7 +97,7 @@ add_executable(tests
 )
 
 target_link_libraries(tests
-    GTest::gtest_main
+    GTest::gtest
     api
     agent
     classes
@@ -110,6 +110,15 @@ target_link_libraries(tests
 target_compile_definitions(api PRIVATE UNIT_TESTS)
 include(GoogleTest)
 gtest_discover_tests(tests)
+
+if (WIN32)
+    add_custom_command(TARGET tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:tests>
+            $<TARGET_FILE_DIR:tests>
+        COMMAND_EXPAND_LISTS
+    )
+endif()
 
 # ------
 # EXECUTABLE
@@ -131,3 +140,12 @@ target_link_libraries(web_agent PRIVATE
     nlohmann_json::nlohmann_json
     dotenv
 )
+
+if (WIN32)
+    add_custom_command(TARGET web_agent POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:web_agent>
+            $<TARGET_FILE_DIR:web_agent>
+        COMMAND_EXPAND_LISTS
+    )
+endif()

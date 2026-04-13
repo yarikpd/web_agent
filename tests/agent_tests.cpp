@@ -2,10 +2,27 @@
 
 #include "agent.h"
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 
 namespace {
+
+void set_env_var(const char* key, const std::string& value) {
+#if defined(_WIN32)
+    _putenv_s(key, value.c_str());
+#else
+    setenv(key, value.c_str(), 1);
+#endif
+}
+
+void unset_env_var(const char* key) {
+#if defined(_WIN32)
+    _putenv_s(key, "");
+#else
+    unsetenv(key);
+#endif
+}
 
 class ScopedEnvVar {
 public:
@@ -15,14 +32,14 @@ public:
             had_previous_ = true;
             previous_value_ = existing;
         }
-        setenv(key_, value.c_str(), 1);
+        set_env_var(key_, value);
     }
 
     ~ScopedEnvVar() {
         if (had_previous_) {
-            setenv(key_, previous_value_.c_str(), 1);
+            set_env_var(key_, previous_value_);
         } else {
-            unsetenv(key_);
+            unset_env_var(key_);
         }
     }
 
