@@ -19,6 +19,7 @@ public:
     [[nodiscard]] int poll_interval_seconds() const;
     [[nodiscard]] int thread_count() const;
     [[nodiscard]] bool show_logs_in_console() const;
+    [[nodiscard]] std::string log_file_path() const;
 
     void save_access_code(const std::string& access_code);
     [[nodiscard]] const std::filesystem::path& dotenv_path() const;
@@ -33,6 +34,7 @@ private:
     std::string poll_interval_seconds_;
     std::string thread_count_;
     std::string show_logs_in_console_;
+    std::string log_file_path_;
 
     static std::filesystem::path find_dotenv_path();
     static void init_dotenv(const std::filesystem::path& dotenv_path);

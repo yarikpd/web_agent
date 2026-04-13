@@ -37,6 +37,7 @@ Settings::Settings() : dotenv_path_(find_dotenv_path()) {
     poll_interval_seconds_ = read_env_value("POLL_INTERVAL_SECONDS");
     thread_count_ = read_env_value("THREAD_COUNT");
     show_logs_in_console_ = read_env_value("SHOW_LOGS_IN_CONSOLE");
+    log_file_path_ = read_env_value("LOG_FILE_PATH");
 }
 
 std::string Settings::get_optional(const std::string& key, const std::string& default_value) const {
@@ -63,6 +64,9 @@ std::string Settings::get_optional(const std::string& key, const std::string& de
     }
     if (key == "SHOW_LOGS_IN_CONSOLE") {
         return show_logs_in_console_.empty() ? default_value : show_logs_in_console_;
+    }
+    if (key == "LOG_FILE_PATH") {
+        return log_file_path_.empty() ? default_value : log_file_path_;
     }
     return default_value;
 }
@@ -141,6 +145,10 @@ bool Settings::show_logs_in_console() const {
     }
 
     throw std::runtime_error("Environment variable SHOW_LOGS_IN_CONSOLE must be boolean.");
+}
+
+std::string Settings::log_file_path() const {
+    return get_optional("LOG_FILE_PATH", "logs.txt");
 }
 
 void Settings::save_access_code(const std::string& access_code) {

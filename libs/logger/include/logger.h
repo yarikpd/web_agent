@@ -12,6 +12,7 @@ enum class LogLevel {
 };
 
 bool start(bool show_logs_in_console = false);
+bool start(const std::string& log_file_path, bool show_logs_in_console = false);
 void stop();
 bool log_message(const std::string& message, LogLevel level = LogLevel::Info);
 void set_console_redraw_callback(std::function<void()> callback);

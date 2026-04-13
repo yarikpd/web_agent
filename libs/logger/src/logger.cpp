@@ -27,6 +27,7 @@ std::thread g_worker;
 bool g_running = false;
 bool g_stopping = false;
 bool g_show_logs_in_console = false;
+std::string g_log_file_path = "logs.txt";
 std::function<void()> g_console_redraw_callback;
 
 std::string level_to_string(const LogLevel level) {
@@ -72,7 +73,7 @@ void write_log_entry(std::ofstream& logs, const LogEntry& entry) {
 }
 
 void worker_loop() {
-    std::ofstream logs("logs.txt", std::ios::app);
+    std::ofstream logs(g_log_file_path, std::ios::app);
     if (!logs.is_open()) {
         std::lock_guard<std::mutex> lock(g_mutex);
         g_running = false;
@@ -102,6 +103,10 @@ void worker_loop() {
 }  // namespace
 
 bool start(const bool show_logs_in_console) {
+    return start("logs.txt", show_logs_in_console);
+}
+
+bool start(const std::string& log_file_path, const bool show_logs_in_console) {
     std::lock_guard<std::mutex> lock(g_mutex);
     if (g_running) {
         return true;
@@ -110,6 +115,7 @@ bool start(const bool show_logs_in_console) {
     g_stopping = false;
     g_running = true;
     g_show_logs_in_console = show_logs_in_console;
+    g_log_file_path = log_file_path;
     g_worker = std::thread(worker_loop);
     return true;
 }
@@ -133,13 +139,14 @@ void stop() {
     g_running = false;
     g_stopping = false;
     g_show_logs_in_console = false;
+    g_log_file_path = "logs.txt";
     g_console_redraw_callback = nullptr;
 }
 
 bool log_message(const std::string& message, const LogLevel level) {
     std::lock_guard<std::mutex> lock(g_mutex);
     if (!g_running) {
-        std::ofstream logs("logs.txt", std::ios::app);
+        std::ofstream logs(g_log_file_path, std::ios::app);
         if (!logs.is_open()) {
             return false;
         }

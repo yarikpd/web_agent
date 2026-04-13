@@ -145,7 +145,7 @@ int main() {
 
     try {
         Settings settings;
-        logger::start(settings.show_logs_in_console());
+        logger::start(settings.log_file_path(), settings.show_logs_in_console());
         logger::log_message("Program started.");
         const std::string api_url = settings.api_url();
         const std::string agent_uid = settings.agent_uid();
