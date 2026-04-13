@@ -13,12 +13,20 @@ FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
 FetchContent_MakeAvailable(cpr)
 
 # GOOGLE TEST
-FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libs/googletest/CMakeLists.txt")
+        add_subdirectory(libs/googletest)
+    else()
+        message(FATAL_ERROR "Expected local GoogleTest at libs/googletest for macOS x86_64 builds.")
+    endif()
+else()
+    FetchContent_Declare(
+            googletest
+            URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+    )
+    FetchContent_MakeAvailable(googletest)
+endif()
 
 # Dotenv
 FetchContent_Declare(

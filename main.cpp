@@ -11,6 +11,10 @@
 #include <thread>
 #include <vector>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 #include "agent.h"
 #include "api.h"
 #include "logger.h"
@@ -34,6 +38,13 @@ struct ConsoleState {
 
 void signal_handler(const int /*signal*/) {
     g_should_stop = true;
+}
+
+void init_console_encoding() {
+#if defined(_WIN32)
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
 }
 
 void render_worker_statuses(ConsoleState& console_state) {
@@ -130,6 +141,7 @@ void worker_loop(Api& api,
 int main() {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
+    init_console_encoding();
 
     try {
         Settings settings;
