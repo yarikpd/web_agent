@@ -1,21 +1,17 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
-#include <dotenv.h>
 
 #include "classes.h"
 #include "api.h"
+#include "settings.h"
 
 #include <iostream>
 #include <fstream>
 #include <chrono>
 
 std::string get_env(const std::string& key, const std::string& default_value = "") {
-    dotenv::init();
-
-    if (const char* env = std::getenv(key.c_str())) {
-        return {env};
-    }
-    return default_value;
+    const Settings settings;
+    return settings.get_optional(key, default_value);
 }
 
 TEST(ApiErrorTest, CreateSuccessError) {

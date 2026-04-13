@@ -31,6 +31,12 @@ public:
     Api(std::string api_url, std::string uid, std::string description);
 
     /**
+     * Sets a previously saved access code without calling registration.
+     * @param value Access code stored locally.
+     */
+    void set_access_code(std::string value);
+
+    /**
      * Sends registration request to `/wa_reg` and stores received `access_code`.
      * @return `RegisterAgentResponse` with unified error information and received `access_code`.
      */

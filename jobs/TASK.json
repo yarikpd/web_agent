@@ -1,0 +1,26 @@
+{
+  "name": "TASK",
+  "description": "Run a program with optional arguments and return its output",
+  "command": {
+    "linux": "{program} {args}",
+    "windows": "{program} {args}",
+    "macos": "{program} {args}"
+  },
+  "parameters": {
+    "program": {
+      "description": "Program or command to run",
+      "required": true,
+      "type": "string"
+    },
+    "args": {
+      "description": "Optional command-line arguments",
+      "required": false,
+      "type": "string"
+    }
+  },
+  "return": {
+    "description": "The output of the executed program",
+    "type": "string",
+    "source": "command_output"
+  }
+}

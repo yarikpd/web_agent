@@ -1,0 +1,21 @@
+{
+  "name": "FILE",
+  "description": "Get file contents",
+  "command": {
+    "linux": "cat {path}",
+    "windows": "type {path}",
+    "macos": "cat {path}"
+  },
+  "parameters": {
+    "path": {
+      "description": "Path to the file",
+      "required": true,
+      "type": "string"
+    }
+  },
+  "return": {
+    "description": "The contents of the file",
+    "type": "string",
+    "source": "command_output"
+  }
+}

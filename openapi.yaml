@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: Web Agent Backend API
+  version: 1.0.0
+  description: |
+    OpenAPI description reconstructed from the local `libs/api` module and its tests.
+
+    Notes:
+    - The backend is expected to use the field name `code_responce` in many responses.
+      The client also accepts `code_response` as a fallback.
+    - `options` in `/wa_task` may arrive either as a JSON object or as a string
+      containing serialized JSON.
+    - `/wa_result` is sent as `multipart/form-data`, where the `result` part is a JSON string.
+
+servers:
+  - url: http://localhost
+    description: Placeholder server URL. Replace with your real API base URL.
+
+tags:
+  - name: Agent
+    description: Registration, task polling, and result submission for web agents.
+
+paths:
+  /wa_reg:
+    post:
+      tags:
+        - Agent
+      summary: Register agent
+      description: Registers an agent and returns an access code used in later requests.
+      operationId: registerAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAgentRequest'
+            examples:
+              default:
+                value:
+                  UID: "329710"
+                  descr: "Desktop web agent"
+      responses:
+        '200':
+          description: Registration processed by backend.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterAgentResponse'
+              examples:
+                success:
+                  value:
+                    code_responce: "0"
+                    status: "OK"
+                    access_code: "594807-1ddb-36af-9616-d8ed2b9d"
+                already_exists:
+                  value:
+                    code_responce: "-3"
+                    status: "ERROR"
+                    msg: "Agent already exists"
+        default:
+          description: Unexpected transport or server-level failure.
+
+  /wa_task:
+    post:
+      tags:
+        - Agent
+      summary: Poll for a new task
+      description: Returns a task when available, otherwise a wait status.
+      operationId: getNewTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTaskRequest'
+            examples:
+              default:
+                value:
+                  UID: "329710"
+                  descr: "Desktop web agent"
+                  access_code: "594807-1ddb-36af-9616-d8ed2b9d"
+      responses:
+        '200':
+          description: Task polling processed by backend.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewTaskResponse'
+              examples:
+                wait:
+                  value:
+                    code_responce: "0"
+                    status: "WAIT"
+                run_with_object_options:
+                  value:
+                    code_responce: "1"
+                    status: "RUN"
+                    task_code: "FILE"
+                    session_id: "iPCgjvea-bHmH-ntib-qYr0-DeGLkbjcaNIy"
+                    options:
+                      path: "./logs.txt"
+                run_with_stringified_options:
+                  value:
+                    code_responce: "1"
+                    status: "RUN"
+                    task_code: "FILE"
+                    session_id: "iPCgjvea-bHmH-ntib-qYr0-DeGLkbjcaNIy"
+                    options: "{\"path\": \"./logs.txt\"}"
+                failure:
+                  value:
+                    code_responce: "-5"
+                    status: "ERROR"
+                    msg: "Access code is invalid"
+        default:
+          description: Unexpected transport or server-level failure.
+
+  /wa_result:
+    post:
+      tags:
+        - Agent
+      summary: Send task execution result
+      description: |
+        Uploads task execution status and optional output files.
+
+        The client sends:
+        - `result_code` as a multipart field
+        - `result` as a JSON string with UID, access code, message, files count, and session_id
+        - optional files as `file1`, `file2`, ... parts
+      operationId: sendTaskResult
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskResultMultipartRequest'
+            encoding:
+              result:
+                contentType: application/json
+            examples:
+              without_files:
+                value:
+                  result_code: 0
+                  result: "{\"UID\":\"329710\",\"access_code\":\"594807-1ddb-36af-9616-d8ed2b9d\",\"message\":\"success\",\"files\":0,\"session_id\":\"iPCgjvea-bHmH-ntib-qYr0-DeGLkbjcaNIy\"}"
+              with_one_file:
+                value:
+                  result_code: 0
+                  result: "{\"UID\":\"329710\",\"access_code\":\"594807-1ddb-36af-9616-d8ed2b9d\",\"message\":\"Task completed with file\",\"files\":1,\"session_id\":\"iPCgjvea-bHmH-ntib-qYr0-DeGLkbjcaNIy\"}"
+                  file1: "(binary)"
+      responses:
+        '200':
+          description: Result upload processed by backend.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResultResponse'
+              examples:
+                success:
+                  value:
+                    code_responce: "0"
+                    status: "OK"
+                invalid_session:
+                  value:
+                    code_responce: "-7"
+                    status: "ERROR"
+                    msg: "Session not found"
+        default:
+          description: Unexpected transport or server-level failure.
+
+components:
+  schemas:
+    RegisterAgentRequest:
+      type: object
+      required:
+        - UID
+        - descr
+      properties:
+        UID:
+          type: string
+          description: Agent identifier.
+        descr:
+          type: string
+          description: Human-readable agent description.
+
+    RegisterAgentResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseApiResponse'
+        - type: object
+          properties:
+            access_code:
+              type: string
+              description: Access code used for authenticated task and result requests.
+
+    NewTaskRequest:
+      type: object
+      required:
+        - UID
+        - descr
+        - access_code
+      properties:
+        UID:
+          type: string
+        descr:
+          type: string
+        access_code:
+          type: string
+
+    NewTaskResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseApiResponse'
+        - type: object
+          properties:
+            task_code:
+              type: string
+              description: Task/job code, for example `FILE`, `TIMEOUT`, or `TASK`.
+            session_id:
+              type: string
+              description: Server-side task execution session identifier.
+            options:
+              description: |
+                Task parameters. The client accepts this either as a JSON object
+                or as a string that contains serialized JSON.
+              oneOf:
+                - type: object
+                  additionalProperties:
+                    type: string
+                - type: string
+                  description: Serialized JSON object.
+
+    TaskResultPayload:
+      type: object
+      required:
+        - UID
+        - access_code
+        - message
+        - files
+        - session_id
+      properties:
+        UID:
+          type: string
+        access_code:
+          type: string
+        message:
+          type: string
+          description: Human-readable task result text.
+        files:
+          type: integer
+          description: Number of attached files.
+        session_id:
+          type: string
+
+    TaskResultMultipartRequest:
+      type: object
+      required:
+        - result_code
+        - result
+      properties:
+        result_code:
+          type: integer
+          description: Result code where `0` means success and negative values signal errors.
+        result:
+          type: string
+          description: JSON string matching `TaskResultPayload`.
+        file1:
+          type: string
+          format: binary
+        file2:
+          type: string
+          format: binary
+        file3:
+          type: string
+          format: binary
+      additionalProperties: true
+
+    TaskResultResponse:
+      $ref: '#/components/schemas/BaseApiResponse'
+
+    BaseApiResponse:
+      type: object
+      properties:
+        code_responce:
+          type: string
+          description: Primary response code field used by the backend.
+        code_response:
+          type: string
+          description: Fallback response code field also accepted by the client.
+        status:
+          type: string
+          description: Response status such as `OK`, `RUN`, `WAIT`, or `ERROR`.
+        msg:
+          type: string
+          description: Optional backend message field.
+        message:
+          type: string
+          description: Optional backend message field used as fallback.
