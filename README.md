@@ -22,6 +22,15 @@
 3.  Выполнение: Агент запускает программу, ожидает её завершения и обрабатывает результаты (перемещает файлы).
 4.  Отчет: Агент отправляет результаты (файлы, коды выполнения) обратно на сервер и логирует каждое действие.
 
+## Библиотеки:
+1) HTTP Library: [CPR](https://github.com/libcpr/cpr)
+2) JSON Parser: [nlohmann/json](https://github.com/nlohmann/json)
+3) TESTS: [Google Test](https://github.com/google/googletest)
+4) Dotenv: [dotenv-cpp](https://github.com/laserpants/dotenv-cpp)
+
+## Сваггер:
+Сваггер находиться в [этом](https://github.com/yarikpd/web_agent/blob/main/openapi.yaml) файле
+
 ## Инструкия по сборке
 Перед созданием проекта cmake убедитесь, что у вас установлен shure [meson](https://mesonbuild.com/):
 1) Для MacOs:
@@ -47,15 +56,6 @@ sudo pacman -S meson
 
 5) Для Windows: 
 Follow instructions in [official documentations](https://mesonbuild.com/SimpleStart.html#windows1)
-
-## Библиотеки:
-1) HTTP Library: [CPR](https://github.com/libcpr/cpr)
-2) JSON Parser: [nlohmann/json](https://github.com/nlohmann/json)
-3) TESTS: [Google Test](https://github.com/google/googletest)
-4) Dotenv: [dotenv-cpp](https://github.com/laserpants/dotenv-cpp)
-
-## Сваггер:
-Сваггер находиться в [этом](https://github.com/yarikpd/web_agent/blob/main/openapi.yaml) файле
 
 ## Роли
 Team Lead: Полосухин Ярослав
