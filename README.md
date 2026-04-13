@@ -54,6 +54,9 @@ Follow instructions in [official documentations](https://mesonbuild.com/SimpleSt
 3) TESTS: [Google Test](https://github.com/google/googletest)
 4) Dotenv: [dotenv-cpp](https://github.com/laserpants/dotenv-cpp)
 
+## Сваггер:
+Сваггер находиться в [этом](https://github.com/yarikpd/web_agent/blob/main/openapi.yaml) файле
+
 ## Роли
 Team Lead: Полосухин Ярослав
 
@@ -89,6 +92,9 @@ This project was implemented based on technical specifications and represents a 
 2) JSON Parser: [nlohmann/json](https://github.com/nlohmann/json)
 3) TESTS: [Google Test](https://github.com/google/googletest)
 4) Dotenv: [dotenv-cpp](https://github.com/laserpants/dotenv-cpp)
+
+## Swagger:
+Swagger is in [this](https://github.com/yarikpd/web_agent/blob/main/openapi.yaml ) file
 
 ### Building
 Before building cmake project, make shure you have installed [meson](https://mesonbuild.com/):
