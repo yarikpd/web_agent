@@ -2,15 +2,15 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
 #include <utility>
 
-#include <dotenv.h>
 #include <nlohmann/json.hpp>
+
+#include "logger.h"
+#include "settings.h"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -35,33 +35,6 @@ AgentError make_error(const int code, std::string message) {
 
 AgentCommandResponse make_response(const bool success, const int code, std::string message, std::string output = "") {
     return AgentCommandResponse{success, make_error(code, std::move(message)), std::move(output)};
-}
-
-std::ofstream open_logs() {
-    std::ofstream logs("logs.txt", std::ios::app);
-    return logs;
-}
-
-void log_message(std::ofstream& logs, const std::string& message) {
-    logs << "----------\n" << message << "\n";
-}
-
-void init_dotenv_from_current_or_parent_dirs() {
-    fs::path current = fs::current_path();
-
-    while (true) {
-        const fs::path dotenv_path = current / ".env";
-        if (fs::exists(dotenv_path)) {
-            dotenv::init(dotenv_path.string().c_str());
-            return;
-        }
-
-        if (current == current.parent_path()) {
-            return;
-        }
-
-        current = current.parent_path();
-    }
 }
 
 std::string trim(std::string value) {
@@ -177,18 +150,36 @@ AgentCommandResponse validate_args(const std::string& job_name, const json& data
     return make_response(true, 0, "");
 }
 
-AgentCommandResponse load_job(const std::string& name, json& data) {
-    const char* jobs_dir_env = std::getenv("JOBS_DIR");
-    if (jobs_dir_env == nullptr || std::string(jobs_dir_env).empty()) {
-        init_dotenv_from_current_or_parent_dirs();
-        jobs_dir_env = std::getenv("JOBS_DIR");
+std::string get_return_type(const json& data) {
+    if (!data.contains("return") || !data["return"].is_object()) {
+        return "string";
     }
 
-    if (jobs_dir_env == nullptr || std::string(jobs_dir_env).empty()) {
+    if (!data["return"].contains("type") || !data["return"]["type"].is_string()) {
+        return "string";
+    }
+
+    return data["return"]["type"].get<std::string>();
+}
+
+AgentCommandResponse load_job(const std::string& name, json& data) {
+    std::string jobs_dir_value;
+    if (const char* jobs_dir_env = std::getenv("JOBS_DIR"); jobs_dir_env != nullptr) {
+        jobs_dir_value = jobs_dir_env;
+    } else {
+        try {
+            const Settings settings;
+            jobs_dir_value = settings.jobs_dir();
+        } catch (const std::exception&) {
+            return make_response(false, kAgentJobsDirConfigError, "Environment variable JOBS_DIR is not set.");
+        }
+    }
+
+    if (jobs_dir_value.empty()) {
         return make_response(false, kAgentJobsDirConfigError, "Environment variable JOBS_DIR is not set.");
     }
 
-    const fs::path job_path = fs::path(jobs_dir_env) / (name + ".json");
+    const fs::path job_path = fs::path(jobs_dir_value) / (name + ".json");
 
     if (!fs::exists(job_path)) {
         return make_response(false, kAgentJobFileNotFoundError, "Job description '" + job_path.string() + "' was not found.");
@@ -211,8 +202,7 @@ AgentCommandResponse load_job(const std::string& name, json& data) {
 }  // namespace
 
 AgentCommandResponse execCommand(const std::string &cmd) {
-    std::ofstream logs = open_logs();
-    if (!logs.is_open()) {
+    if (!logger::log_message("Starting command execution.\nCommand: " + cmd)) {
         return make_response(false, kAgentLogOpenError, "Failed to open logs.txt for writing.");
     }
 
@@ -220,11 +210,9 @@ AgentCommandResponse execCommand(const std::string &cmd) {
     std::string result;
     const std::string command_with_stderr = cmd + " 2>&1";
 
-    log_message(logs, "Starting command execution.\nCommand: " + cmd);
-
     FILE *pipe = POPEN(command_with_stderr.c_str(), "r");
     if (!pipe) {
-        log_message(logs, "Failed to start command.\nCommand: " + cmd);
+        logger::log_message("Failed to start command.\nCommand: " + cmd);
         return make_response(false, kAgentCommandStartError, "Couldn't run the command: " + cmd);
     }
 
@@ -234,44 +222,41 @@ AgentCommandResponse execCommand(const std::string &cmd) {
 
     const int exit_code = PCLOSE(pipe);
     if (exit_code != 0) {
-        log_message(logs, "Command finished with non-zero exit code.\nCommand: " + cmd + "\nExit code: " + std::to_string(exit_code) + "\nOutput:\n" + result);
+        logger::log_message("Command finished with non-zero exit code.\nCommand: " + cmd + "\nExit code: " + std::to_string(exit_code) + "\nOutput:\n" + result);
         return make_response(false, kAgentCommandExitError, "Command finished with exit code " + std::to_string(exit_code) + ".", result);
     }
 
-    log_message(logs, "Command finished successfully.\nCommand: " + cmd + "\nOutput:\n" + result);
+    logger::log_message("Command finished successfully.\nCommand: " + cmd + "\nOutput:\n" + result);
     return make_response(true, 0, "", result);
 }
 
 AgentCommandResponse f(const std::string &name, const std::map<std::string, std::string>& args) {
-    std::ofstream logs = open_logs();
-    if (!logs.is_open()) {
+    if (!logger::log_message("Starting job execution.\nJob: " + name)) {
         return make_response(false, kAgentLogOpenError, "Failed to open logs.txt for writing.");
     }
-
-    log_message(logs, "Starting job execution.\nJob: " + name);
 
     json data;
     auto load_response = load_job(name, data);
     if (!load_response.success) {
-        log_message(logs, "Failed to load job.\nJob: " + name + "\nError: " + load_response.error.message);
+        logger::log_message("Failed to load job.\nJob: " + name + "\nError: " + load_response.error.message);
         return load_response;
     }
 
     if (!data.contains("command") || !data["command"].is_object()) {
         const auto response = make_response(false, kAgentJobSchemaError, "Job '" + name + "' does not contain a valid 'command' object.");
-        log_message(logs, "Failed to execute job.\nJob: " + name + "\nError: " + response.error.message);
+        logger::log_message("Failed to execute job.\nJob: " + name + "\nError: " + response.error.message);
         return response;
     }
 
     if (!data["command"].contains(OS_NAME) || !data["command"][OS_NAME].is_string()) {
         const auto response = make_response(false, kAgentJobSchemaError, "Job '" + name + "' does not define a command for OS '" OS_NAME "'.");
-        log_message(logs, "Failed to execute job.\nJob: " + name + "\nError: " + response.error.message);
+        logger::log_message("Failed to execute job.\nJob: " + name + "\nError: " + response.error.message);
         return response;
     }
 
     auto validation_response = validate_args(name, data, args);
     if (!validation_response.success) {
-        log_message(logs, "Job argument validation failed.\nJob: " + name + "\nError: " + validation_response.error.message);
+        logger::log_message("Job argument validation failed.\nJob: " + name + "\nError: " + validation_response.error.message);
         return validation_response;
     }
 
@@ -282,19 +267,23 @@ AgentCommandResponse f(const std::string &name, const std::map<std::string, std:
             replacePlaceholder(command, placeholder, value);
         } catch (const std::exception& e) {
             const auto response = make_response(false, kAgentPlaceholderError, "Failed to prepare command for job '" + name + "': " + e.what());
-            log_message(logs, "Failed to execute job.\nJob: " + name + "\nError: " + response.error.message);
+            logger::log_message("Failed to execute job.\nJob: " + name + "\nError: " + response.error.message);
             return response;
         }
     }
 
-    log_message(logs, "Job prepared successfully.\nJob: " + name + "\nCommand: " + command);
+    logger::log_message("Job prepared successfully.\nJob: " + name + "\nCommand: " + command);
     auto command_response = execCommand(command);
     if (!command_response.success) {
-        log_message(logs, "Job execution failed.\nJob: " + name + "\nError: " + command_response.error.message);
+        logger::log_message("Job execution failed.\nJob: " + name + "\nError: " + command_response.error.message);
         return command_response;
     }
 
-    log_message(logs, "Job finished successfully.\nJob: " + name);
+    if (get_return_type(data) != "string") {
+        command_response.output = "success";
+    }
+
+    logger::log_message("Job finished successfully.\nJob: " + name);
     return command_response;
 }
 

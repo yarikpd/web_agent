@@ -2,9 +2,10 @@
 
 #include <cpr/cpr.h>
 
-#include <utility>
-#include <fstream>
 #include <iostream>
+#include <utility>
+
+#include "logger.h"
 
 std::string Api::extract_code_response(const nlohmann::json& json_response) {
     if (json_response.contains("code_responce") && json_response["code_responce"].is_string()) {
@@ -28,11 +29,28 @@ std::string Api::extract_msg(const nlohmann::json& json_response) {
 
 std::map<std::string, std::string> Api::extract_options(const nlohmann::json& json_response) {
     std::map<std::string, std::string> options;
-    if (!json_response.contains("options") || !json_response["options"].is_object()) {
+    if (!json_response.contains("options")) {
         return options;
     }
 
-    for (auto it = json_response["options"].begin(); it != json_response["options"].end(); ++it) {
+    nlohmann::json options_json;
+    if (json_response["options"].is_object()) {
+        options_json = json_response["options"];
+    } else if (json_response["options"].is_string()) {
+        try {
+            options_json = nlohmann::json::parse(json_response["options"].get<std::string>());
+        } catch (...) {
+            return options;
+        }
+    } else {
+        return options;
+    }
+
+    if (!options_json.is_object()) {
+        return options;
+    }
+
+    for (auto it = options_json.begin(); it != options_json.end(); ++it) {
         if (it.value().is_string()) {
             options[it.key()] = it.value().get<std::string>();
         } else {
@@ -61,10 +79,12 @@ ApiError Api::make_error(const int code, std::string message, std::string status
 Api::Api(std::string api_url, std::string uid, std::string description)
     : api_url(std::move(api_url)), uid(std::move(uid)), description(std::move(description)) {}
 
+void Api::set_access_code(std::string value) {
+    access_code = std::move(value);
+}
+
 RegisterAgentResponse Api::register_agent() {
-    std::ofstream logs;
-    logs.open("logs.txt", std::ios::app);
-    if (!logs.is_open()) {
+    if (!logger::log_message("RegisterAgent request started for UID: " + uid)) {
         std::cerr << "Failed to open logs.txt for writing." << std::endl;
         return RegisterAgentResponse{false, make_error(-1002, "Failed to open logs.txt for writing."), ""};
     }
@@ -88,21 +108,25 @@ RegisterAgentResponse Api::register_agent() {
             const std::string status = json_response.value("status", "");
             if (code_response_int == 0) {
                 access_code = json_response.value("access_code", "");
-                logs << "----------\n" << "Successfully registered agent with UID: " << uid << "\n";
+                logger::log_message("Successfully registered agent with UID: " + uid);
 
                 return RegisterAgentResponse{true, make_error(0, "", status), access_code};
             }
             const std::string message = extract_msg(json_response);
-            logs << "----------\n" << "Failed to register agent with UID: " << uid << "\n"
-                 << "API responded with code_response: " << code_response << "\n"
-                 << "Response message: " << message << "\n";
+            logger::log_message(
+                "Failed to register agent with UID: " + uid + "\n"
+                "API responded with code_response: " + code_response + "\n"
+                "Response message: " + message
+            );
 
             return RegisterAgentResponse{false, make_error(code_response_int, message, status), ""};
         }
 
-        logs << "----------\n" << "Failed to register agent with UID: " << uid << "\n"
-             << "Status Code: " << response.status_code << "\n"
-             << "Response Body: " << response.text << "\n";
+        logger::log_message(
+            "Failed to register agent with UID: " + uid + "\n"
+            "Status Code: " + std::to_string(response.status_code) + "\n"
+            "Response Body: " + response.text
+        );
 
         return RegisterAgentResponse{
             false,
@@ -110,8 +134,10 @@ RegisterAgentResponse Api::register_agent() {
             ""
         };
     } catch (std::exception& e) {
-        logs << "----------\n" << "Exception occurred while registering agent with UID: " << uid << "\n"
-             << "Exception message: " << e.what() << "\n";
+        logger::log_message(
+            "Exception occurred while registering agent with UID: " + uid + "\n"
+            "Exception message: " + std::string(e.what())
+        );
 
         return RegisterAgentResponse{
             false,
@@ -127,9 +153,7 @@ NewTaskResponse Api::new_tasks() {
         return NewTaskResponse{false, make_error(-1001, "Access code is empty. Please register the agent first."), "", {}, "", ""};
     }
 
-    std::ofstream logs;
-    logs.open("logs.txt", std::ios::app);
-    if (!logs.is_open()) {
+    if (!logger::log_message("NewTask request started for UID: " + uid)) {
         std::cerr << "Failed to open logs.txt for writing." << std::endl;
         return NewTaskResponse{false, make_error(-1002, "Failed to open logs.txt for writing."), "", {}, "", ""};
     }
@@ -154,7 +178,8 @@ NewTaskResponse Api::new_tasks() {
             const std::string status = json_response.value("status", "");
 
             if (code_response_int == 1) {
-                logs << "----------\n" << "Successfully got new task for agent with UID: " << uid << "\n";
+                logger::log_message("Successfully got new task for agent with UID: " + uid);
+
                 return NewTaskResponse{
                     true,
                     make_error(0, "", status),
@@ -166,24 +191,30 @@ NewTaskResponse Api::new_tasks() {
             }
 
             if (code_response_int == 0) {
-                logs << "----------\n" << "No task available for agent with UID: " << uid << "\n";
+                logger::log_message("No task available for agent with UID: " + uid);
                 return NewTaskResponse{true, make_error(0, "", status.empty() ? "WAIT" : status), "", {}, "", status.empty() ? "WAIT" : status};
             }
 
             const std::string message = extract_msg(json_response);
-            logs << "----------\n" << "Failed to get new tasks for agent with UID: " << uid << "\n"
-                 << "API responded with code_response: " << code_response << "\n"
-                 << "Response message: " << message << "\n";
+            logger::log_message(
+                "Failed to get new tasks for agent with UID: " + uid + "\n"
+                "API responded with code_response: " + code_response + "\n"
+                "Response message: " + message
+            );
             return NewTaskResponse{false, make_error(code_response_int, message, status), "", {}, "", status};
         }
 
-        logs << "----------\n" << "Failed to get new tasks for agent with UID: " << uid << "\n"
-             << "Status Code: " << response.status_code << "\n"
-             << "Response Body: " << response.text << "\n";
+        logger::log_message(
+            "Failed to get new tasks for agent with UID: " + uid + "\n"
+            "Status Code: " + std::to_string(response.status_code) + "\n"
+            "Response Body: " + response.text
+        );
         return NewTaskResponse{false, make_error(-1003, "Unexpected HTTP status code: " + std::to_string(response.status_code)), "", {}, "", ""};
     } catch (std::exception& e) {
-        logs << "----------\n" << "Failed to get new tasks for agent with UID: " << uid << "\n"
-             << "Exception message: " << e.what() << "\n";
+        logger::log_message(
+            "Failed to get new tasks for agent with UID: " + uid + "\n"
+            "Exception message: " + std::string(e.what())
+        );
 
         return NewTaskResponse{false, make_error(-1004, std::string("Exception occurred while getting new tasks: ") + e.what()), "", {}, "", ""};
     }
@@ -195,9 +226,7 @@ TaskResultResponse Api::send_task_result(const int result_code, const std::strin
         return TaskResultResponse{false, make_error(-1001, "Access code is empty. Please register the agent first.")};
     }
 
-    std::ofstream logs;
-    logs.open("logs.txt", std::ios::app);
-    if (!logs.is_open()) {
+    if (!logger::log_message("TaskResult request started for UID: " + uid)) {
         std::cerr << "Failed to open logs.txt for writing." << std::endl;
         return TaskResultResponse{false, make_error(-1002, "Failed to open logs.txt for writing.")};
     }
@@ -230,28 +259,36 @@ TaskResultResponse Api::send_task_result(const int result_code, const std::strin
             const int code_response_int = parse_code_response(code_response);
             const std::string status = json_response.value("status", "");
             if (code_response_int == 0) {
-                logs << "----------\n" << "Successfully sent task result for agent with UID: " << uid << "\n"
-                     << "result_code: " << result_code << ", files: " << files.size() << "\n";
+                logger::log_message(
+                    "Successfully sent task result for agent with UID: " + uid + "\n"
+                    "result_code: " + std::to_string(result_code) + ", files: " + std::to_string(files.size())
+                );
                 return TaskResultResponse{true, make_error(0, "", status)};
             }
 
-            const std::string message = extract_msg(json_response);
-            logs << "----------\n" << "Failed to send task result for agent with UID: " << uid << "\n"
-                 << "result_code: " << result_code << ", files: " << files.size() << "\n"
-                 << "API responded with code_response: " << code_response << "\n"
-                 << "Response message: " << message << "\n";
-            return TaskResultResponse{false, make_error(code_response_int, message, status)};
+            const std::string response_message = extract_msg(json_response);
+            logger::log_message(
+                "Failed to send task result for agent with UID: " + uid + "\n"
+                "result_code: " + std::to_string(result_code) + ", files: " + std::to_string(files.size()) + "\n"
+                "API responded with code_response: " + code_response + "\n"
+                "Response message: " + response_message
+            );
+            return TaskResultResponse{false, make_error(code_response_int, response_message, status)};
         }
 
-        logs << "----------\n" << "Failed to send task result for agent with UID: " << uid << "\n"
-             << "result_code: " << result_code << ", files: " << files.size() << "\n"
-             << "Status Code: " << response.status_code << "\n"
-             << "Response Body: " << response.text << "\n";
+        logger::log_message(
+            "Failed to send task result for agent with UID: " + uid + "\n"
+            "result_code: " + std::to_string(result_code) + ", files: " + std::to_string(files.size()) + "\n"
+            "Status Code: " + std::to_string(response.status_code) + "\n"
+            "Response Body: " + response.text
+        );
         return TaskResultResponse{false, make_error(-1003, "Unexpected HTTP status code: " + std::to_string(response.status_code))};
     } catch (std::exception& e) {
-        logs << "----------\n" << "Exception while sending task result for agent with UID: " << uid << "\n"
-             << "result_code: " << result_code << ", files: " << files.size() << "\n"
-             << "Exception message: " << e.what() << "\n";
+        logger::log_message(
+            "Exception while sending task result for agent with UID: " + uid + "\n"
+            "result_code: " + std::to_string(result_code) + ", files: " + std::to_string(files.size()) + "\n"
+            "Exception message: " + std::string(e.what())
+        );
         return TaskResultResponse{false, make_error(-1004, std::string("Exception occurred while sending task result: ") + e.what())};
     }
 }

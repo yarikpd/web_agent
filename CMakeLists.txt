@@ -39,15 +39,18 @@ target_sources(agent PRIVATE libs/agent/src/agent.cpp)
 target_include_directories(
         agent PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/agent/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/logger/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/settings/include>
         $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(agent PRIVATE nlohmann_json::nlohmann_json classes dotenv)
+target_link_libraries(agent PRIVATE nlohmann_json::nlohmann_json classes dotenv logger settings)
 
 add_library(api STATIC)
 target_sources(api PRIVATE libs/api/src/api.cpp)
 target_include_directories(
         api PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/api/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/logger/include>
         $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(api
@@ -56,6 +59,7 @@ target_link_libraries(api
         classes
         PRIVATE
         cpr::cpr
+        logger
 )
 
 add_library(classes STATIC)
@@ -65,6 +69,23 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/classes/include>
         $<INSTALL_INTERFACE:include>
 )
+
+add_library(logger STATIC)
+target_sources(logger PRIVATE libs/logger/src/logger.cpp)
+target_include_directories(
+        logger PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/logger/include>
+        $<INSTALL_INTERFACE:include>
+)
+
+add_library(settings STATIC)
+target_sources(settings PRIVATE libs/settings/src/settings.cpp)
+target_include_directories(
+        settings PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/settings/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(settings PRIVATE dotenv)
 
 # ------
 # TESTS
@@ -80,6 +101,8 @@ target_link_libraries(tests
     api
     agent
     classes
+    logger
+    settings
     cpr::cpr
     nlohmann_json::nlohmann_json
     dotenv
@@ -95,11 +118,15 @@ target_include_directories(web_agent PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/agent/include
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/api/include
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/classes/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/logger/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/settings/include
 )
 target_link_libraries(web_agent PRIVATE
     agent
     api
     classes
+    logger
+    settings
     cpr::cpr
     nlohmann_json::nlohmann_json
     dotenv
