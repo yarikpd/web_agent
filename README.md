@@ -41,7 +41,7 @@ brew install meson ninja
 
 2) Для Debian, Ubuntu и производных дистрибутивов:
 ```bash
-sudo apt install meson ninja-build
+sudo apt install meson ninja-build libmbedtls-dev libpsl-dev
 ```
 
 3) Для Fedora, Centos, RHEL и производных дистрибутивов: 
@@ -106,7 +106,7 @@ Or if you don't have homebrew, follow instructions in [official documentations](
 
 2) For Debian, Ubuntu and derivatives:
 ```bash
-sudo apt install meson ninja-build
+sudo apt install meson ninja-build  libmbedtls-dev libpsl-dev
 ```
 
 3) For Fedora, Centos, RHEL and derivatives: 
