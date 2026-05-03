@@ -3,6 +3,7 @@
 #include <csignal>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include <mutex>
@@ -13,6 +14,9 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+#else
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 #include "agent.h"
@@ -23,6 +27,7 @@
 namespace {
 
 std::atomic g_should_stop = false;
+std::atomic g_restart_requested = false;
 
 struct PendingTask {
     std::string task_code;
@@ -38,6 +43,100 @@ struct ConsoleState {
 
 void signal_handler(const int /*signal*/) {
     g_should_stop = true;
+}
+
+std::string quote_windows_arg(const std::string& arg) {
+    if (arg.empty() || arg.find_first_of(" \t\n\v\"") != std::string::npos) {
+        std::string quoted = "\"";
+        for (const char ch : arg) {
+            if (ch == '"') {
+                quoted += "\\\"";
+            } else {
+                quoted += ch;
+            }
+        }
+        quoted += "\"";
+        return quoted;
+    }
+    return arg;
+}
+
+bool launch_replacement_process(const std::vector<std::string>& arguments) {
+    if (arguments.empty()) {
+        return false;
+    }
+
+#if defined(_WIN32)
+    std::string command_line;
+    for (const std::string& argument : arguments) {
+        if (!command_line.empty()) {
+            command_line += ' ';
+        }
+        command_line += quote_windows_arg(argument);
+    }
+
+    STARTUPINFOA startup_info{};
+    startup_info.cb = sizeof(startup_info);
+    PROCESS_INFORMATION process_info{};
+    const BOOL created = CreateProcessA(
+        nullptr,
+        command_line.data(),
+        nullptr,
+        nullptr,
+        FALSE,
+        0,
+        nullptr,
+        nullptr,
+        &startup_info,
+        &process_info
+    );
+
+    if (!created) {
+        return false;
+    }
+
+    CloseHandle(process_info.hThread);
+    CloseHandle(process_info.hProcess);
+    return true;
+#else
+    const pid_t pid = fork();
+    if (pid < 0) {
+        return false;
+    }
+    if (pid == 0) {
+        std::vector<char*> exec_arguments;
+        exec_arguments.reserve(arguments.size() + 1);
+        for (const std::string& argument : arguments) {
+            exec_arguments.push_back(const_cast<char*>(argument.c_str()));
+        }
+        exec_arguments.push_back(nullptr);
+        execvp(exec_arguments[0], exec_arguments.data());
+        _exit(127);
+    }
+    return true;
+#endif
+}
+
+void request_restart(std::queue<PendingTask>& task_queue,
+                     std::mutex& task_mutex,
+                     std::condition_variable& task_condition) {
+    g_restart_requested = true;
+    g_should_stop = true;
+    {
+        std::lock_guard<std::mutex> lock(task_mutex);
+        std::queue<PendingTask> empty_queue;
+        task_queue.swap(empty_queue);
+    }
+    task_condition.notify_all();
+}
+
+bool stop_requested_during_wait(std::mutex& mutex,
+                                std::condition_variable& condition,
+                                const int seconds) {
+    std::unique_lock<std::mutex> lock(mutex);
+    return condition.wait_for(lock, std::chrono::seconds(seconds), [] {
+        return g_should_stop.load();
+    });
 }
 
 void init_console_encoding() {
@@ -94,7 +193,7 @@ void worker_loop(Api& api,
                 return g_should_stop || !task_queue.empty();
             });
 
-            if (g_should_stop && task_queue.empty()) {
+            if (g_should_stop && (g_restart_requested || task_queue.empty())) {
                 break;
             }
 
@@ -118,7 +217,7 @@ void worker_loop(Api& api,
                 result_code,
                 result_message,
                 pending_task.session_id,
-                {}
+                agent_response.files
             );
         }
 
@@ -127,6 +226,16 @@ void worker_loop(Api& api,
                 "Worker " + std::to_string(worker_index) +
                 " failed to send task result. Error: " + result_response.error.message
             );
+        }
+
+        if (agent_response.restart_required && result_response.success) {
+            logger::log_message(
+                "Worker " + std::to_string(worker_index) +
+                " requested web_agent restart after task: " + pending_task.task_code
+            );
+            update_worker_status(console_state, worker_index, "Запрошен перезапуск");
+            request_restart(task_queue, task_mutex, task_condition);
+            break;
         }
 
         update_worker_status(console_state, worker_index, "Ожидает задачи");
@@ -138,7 +247,13 @@ void worker_loop(Api& api,
 
 }  // namespace
 
-int main() {
+int main(const int argc, char* argv[]) {
+    std::vector<std::string> launch_arguments;
+    launch_arguments.reserve(static_cast<std::size_t>(argc));
+    for (int index = 0; index < argc; ++index) {
+        launch_arguments.emplace_back(argv[index]);
+    }
+
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
     init_console_encoding();
@@ -226,12 +341,16 @@ int main() {
 
             if (!task_response.success) {
                 logger::log_message("Failed to fetch a new task. Error: " + task_response.error.message, logger::LogLevel::Error);
-                std::this_thread::sleep_for(std::chrono::seconds(poll_interval_seconds));
+                if (stop_requested_during_wait(task_mutex, task_condition, poll_interval_seconds)) {
+                    break;
+                }
                 continue;
             }
 
             if (task_response.status == "WAIT" || task_response.task_code.empty()) {
-                std::this_thread::sleep_for(std::chrono::seconds(poll_interval_seconds));
+                if (stop_requested_during_wait(task_mutex, task_condition, poll_interval_seconds)) {
+                    break;
+                }
                 continue;
             }
 
@@ -273,7 +392,12 @@ int main() {
         return 1;
     }
 
-    logger::log_message("Program ended.");
+    const bool restart_requested = g_restart_requested;
+    logger::log_message(restart_requested ? "Program restarting." : "Program ended.");
     logger::stop();
+    if (restart_requested && !launch_replacement_process(launch_arguments)) {
+        std::cerr << "Failed to restart web_agent." << std::endl;
+        return 1;
+    }
     return 0;
 }

@@ -6,6 +6,8 @@
     "windows": "powershell -Command \"$envFile='.env'; $newLine='POLL_INTERVAL_SECONDS={timeout}'; if (Test-Path $envFile) { $content = Get-Content $envFile; if ($content -match '^POLL_INTERVAL_SECONDS=') { $content = $content -replace '^POLL_INTERVAL_SECONDS=.*', $newLine } else { $content += $newLine }; Set-Content -Path $envFile -Value $content } else { Set-Content -Path $envFile -Value $newLine }\"",
     "macos": "if grep -q '^POLL_INTERVAL_SECONDS=' .env; then sed -i.bak 's/^POLL_INTERVAL_SECONDS=.*/POLL_INTERVAL_SECONDS={timeout}/' .env && rm -f .env.bak; else printf '\\nPOLL_INTERVAL_SECONDS={timeout}\\n' >> .env; fi"
   },
+  "return_files": false,
+  "restart_after": true,
   "parameters": {
     "timeout": {
       "description": "Polling interval in seconds",
