@@ -1,0 +1,38 @@
+{
+  "name": "CONF",
+  "description": "Update web_agent configuration values in .env",
+  "command": {
+    "linux": "sh -c 'set_kv(){ key=\"$1\"; value=\"$2\"; [ -z \"$value\" ] && return 0; tmp=\".env.tmp.$$\"; touch .env; found=0; while IFS= read -r line; do case \"$line\" in \"$key=\"*) printf \"%s=%s\\n\" \"$key\" \"$value\"; found=1 ;; *) printf \"%s\\n\" \"$line\" ;; esac; done < .env > \"$tmp\"; [ \"$found\" -eq 0 ] && printf \"%s=%s\\n\" \"$key\" \"$value\" >> \"$tmp\"; mv \"$tmp\" .env; }; set_kv AGENT_UID \"{AGENT_UID}\"; set_kv AGENT_DESCR \"{AGENT_DESCR}\"; set_kv LOG_FILE_PATH \"{LOG_FILE_PATH}\"; set_kv THREAD_COUNT \"{THREAD_COUNT}\"'",
+    "windows": "powershell -NoProfile -Command \"function Set-Kv($key,$value){ if([string]::IsNullOrEmpty($value)){ return }; $envFile='.env'; if(Test-Path $envFile){ $content=Get-Content $envFile } else { $content=@() }; $line=\\\"$key=$value\\\"; $updated=$false; $out=@(); foreach($item in $content){ if($item -match \\\"^$([regex]::Escape($key))=\\\"){ $out += $line; $updated=$true } else { $out += $item } }; if(-not $updated){ $out += $line }; Set-Content -Path $envFile -Value $out }; Set-Kv 'AGENT_UID' '{AGENT_UID}'; Set-Kv 'AGENT_DESCR' '{AGENT_DESCR}'; Set-Kv 'LOG_FILE_PATH' '{LOG_FILE_PATH}'; Set-Kv 'THREAD_COUNT' '{THREAD_COUNT}'\"",
+    "macos": "sh -c 'set_kv(){ key=\"$1\"; value=\"$2\"; [ -z \"$value\" ] && return 0; tmp=\".env.tmp.$$\"; touch .env; found=0; while IFS= read -r line; do case \"$line\" in \"$key=\"*) printf \"%s=%s\\n\" \"$key\" \"$value\"; found=1 ;; *) printf \"%s\\n\" \"$line\" ;; esac; done < .env > \"$tmp\"; [ \"$found\" -eq 0 ] && printf \"%s=%s\\n\" \"$key\" \"$value\" >> \"$tmp\"; mv \"$tmp\" .env; }; set_kv AGENT_UID \"{AGENT_UID}\"; set_kv AGENT_DESCR \"{AGENT_DESCR}\"; set_kv LOG_FILE_PATH \"{LOG_FILE_PATH}\"; set_kv THREAD_COUNT \"{THREAD_COUNT}\"'"
+  },
+  "return_files": false,
+  "restart_after": true,
+  "parameters": {
+    "AGENT_UID": {
+      "description": "Agent identifier",
+      "required": false,
+      "type": "string"
+    },
+    "AGENT_DESCR": {
+      "description": "Agent description",
+      "required": false,
+      "type": "string"
+    },
+    "LOG_FILE_PATH": {
+      "description": "Path to the log file",
+      "required": false,
+      "type": "string"
+    },
+    "THREAD_COUNT": {
+      "description": "Total thread count including logger thread",
+      "required": false,
+      "type": "int"
+    }
+  },
+  "return": {
+    "description": "Whether configuration was updated successfully",
+    "type": "bool",
+    "source": "command_success"
+  }
+}

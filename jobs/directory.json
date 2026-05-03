@@ -6,6 +6,8 @@
     "windows": "dir {directory}",
     "macos": "ls -l {directory}"
   },
+  "return_files": false,
+  "restart_after": false,
   "parameters": {
     "directory": {
       "description": "The directory to list",

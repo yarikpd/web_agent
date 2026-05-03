@@ -3,9 +3,11 @@
   "description": "Run a program with optional arguments and return its output",
   "command": {
     "linux": "{program} {args}",
-    "windows": "{program} {args}",
+    "windows": "start /wait \"\" \"{program}\" {args}",
     "macos": "{program} {args}"
   },
+  "return_files": true,
+  "restart_after": false,
   "parameters": {
     "program": {
       "description": "Program or command to run",

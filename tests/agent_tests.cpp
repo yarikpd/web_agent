@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 
 namespace {
 
@@ -51,6 +52,11 @@ private:
 
 std::string jobs_dir_path() {
     return (std::filesystem::current_path().parent_path() / "jobs").string();
+}
+
+std::string read_text_file(const std::filesystem::path& path) {
+    std::ifstream input(path);
+    return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
 }
 
 }  // namespace
@@ -110,6 +116,157 @@ TEST(AgentTest, ExecutesJobWithValidArguments) {
     EXPECT_TRUE(response.success) << response.error.message;
     EXPECT_EQ(response.error.code, 0);
     EXPECT_FALSE(response.output.empty());
+    EXPECT_FALSE(response.restart_required);
+}
+
+TEST(AgentTest, ReturnsFilesWhenJobEnablesReturnFiles) {
+    ScopedEnvVar jobs_dir("JOBS_DIR", jobs_dir_path());
+    const std::filesystem::path temp_job = std::filesystem::path(jobs_dir_path()) / "return_files_test.json";
+    const std::filesystem::path output_file = std::filesystem::current_path() / "return_files_test_output.txt";
+
+    std::ofstream file(temp_job);
+    file << R"({
+  "name": "return_files_test",
+  "command": {
+    "linux": "printf return-file > {path}",
+    "macos": "printf return-file > {path}",
+    "windows": "cmd /C echo return-file > {path}"
+  },
+  "return_files": true,
+  "parameters": {
+    "path": {
+      "required": true,
+      "type": "string"
+    }
+  }
+})";
+    file.close();
+
+    const auto response = f("return_files_test", {{"path", output_file.string()}});
+
+    EXPECT_TRUE(response.success) << response.error.message;
+    ASSERT_EQ(response.files.size(), 1);
+    EXPECT_EQ(std::filesystem::path(response.files[0]), output_file.lexically_normal());
+
+    std::filesystem::remove(output_file);
+    std::filesystem::remove(temp_job);
+}
+
+TEST(AgentTest, DoesNotReturnFilesWhenJobDisablesReturnFiles) {
+    ScopedEnvVar jobs_dir("JOBS_DIR", jobs_dir_path());
+    const std::filesystem::path temp_job = std::filesystem::path(jobs_dir_path()) / "no_return_files_test.json";
+    const std::filesystem::path output_file = std::filesystem::current_path() / "no_return_files_test_output.txt";
+
+    std::ofstream file(temp_job);
+    file << R"({
+  "name": "no_return_files_test",
+  "command": {
+    "linux": "printf no-return-file > {path}",
+    "macos": "printf no-return-file > {path}",
+    "windows": "cmd /C echo no-return-file > {path}"
+  },
+  "return_files": false,
+  "parameters": {
+    "path": {
+      "required": true,
+      "type": "string"
+    }
+  }
+})";
+    file.close();
+
+    const auto response = f("no_return_files_test", {{"path", output_file.string()}});
+
+    EXPECT_TRUE(response.success) << response.error.message;
+    EXPECT_TRUE(response.files.empty());
+
+    std::filesystem::remove(output_file);
+    std::filesystem::remove(temp_job);
+}
+
+TEST(AgentTest, SupportsOptionalPlaceholders) {
+    ScopedEnvVar jobs_dir("JOBS_DIR", jobs_dir_path());
+    const std::filesystem::path temp_job = std::filesystem::path(jobs_dir_path()) / "optional_placeholder_test.json";
+
+    std::ofstream file(temp_job);
+    file << R"({
+  "name": "optional_placeholder_test",
+  "command": {
+    "linux": "printf '{required}{optional}'",
+    "macos": "printf '{required}{optional}'",
+    "windows": "cmd /C echo {required}{optional}"
+  },
+  "parameters": {
+    "required": {
+      "required": true,
+      "type": "string"
+    },
+    "optional": {
+      "required": false,
+      "type": "string"
+    }
+  }
+})";
+    file.close();
+
+    const auto response = f("optional_placeholder_test", {{"required", "value"}});
+
+    EXPECT_TRUE(response.success) << response.error.message;
+    EXPECT_NE(response.output.find("value"), std::string::npos);
+    EXPECT_EQ(response.output.find("{optional}"), std::string::npos);
+
+    std::filesystem::remove(temp_job);
+}
+
+TEST(AgentTest, MarksRestartRequiredWhenJobEnablesRestartAfter) {
+    ScopedEnvVar jobs_dir("JOBS_DIR", jobs_dir_path());
+    const std::filesystem::path temp_job = std::filesystem::path(jobs_dir_path()) / "restart_after_test.json";
+
+    std::ofstream file(temp_job);
+    file << R"({
+  "name": "restart_after_test",
+  "command": {
+    "linux": "printf restart",
+    "macos": "printf restart",
+    "windows": "cmd /C echo restart"
+  },
+  "restart_after": true,
+  "parameters": {}
+})";
+    file.close();
+
+    const auto response = f("restart_after_test", {});
+
+    EXPECT_TRUE(response.success) << response.error.message;
+    EXPECT_TRUE(response.restart_required);
+
+    std::filesystem::remove(temp_job);
+}
+
+TEST(AgentTest, ConfJobUpdatesEnvAndRequestsRestart) {
+    ScopedEnvVar jobs_dir("JOBS_DIR", jobs_dir_path());
+    const std::filesystem::path env_path = std::filesystem::current_path() / ".env";
+    const bool had_env = std::filesystem::exists(env_path);
+    const std::string previous_env = had_env ? read_text_file(env_path) : "";
+
+    const auto response = f("CONF", {
+        {"AGENT_UID", "conf_test_uid"},
+        {"THREAD_COUNT", "7"}
+    });
+
+    EXPECT_TRUE(response.success) << response.error.message;
+    EXPECT_TRUE(response.restart_required);
+
+    const std::string updated_env = read_text_file(env_path);
+    EXPECT_NE(updated_env.find("AGENT_UID=conf_test_uid"), std::string::npos);
+    EXPECT_NE(updated_env.find("THREAD_COUNT=7"), std::string::npos);
+
+    if (had_env) {
+        std::ofstream output(env_path, std::ios::trunc);
+        output << previous_env;
+    } else {
+        std::filesystem::remove(env_path);
+    }
 }
 
 TEST(AgentTest, FailsWhenJobsDirIsNotConfigured) {

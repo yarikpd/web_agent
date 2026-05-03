@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
 #define OS_NAME "windows"
@@ -33,6 +34,8 @@ struct AgentCommandResponse {
     bool success;
     AgentError error;
     std::string output;
+    std::vector<std::string> files;
+    bool restart_required = false;
 };
 
 AgentCommandResponse execCommand(const std::string &cmd);
