@@ -38,6 +38,13 @@ Settings::Settings() : dotenv_path_(find_dotenv_path()) {
     thread_count_ = read_env_value("THREAD_COUNT");
     show_logs_in_console_ = read_env_value("SHOW_LOGS_IN_CONSOLE");
     log_file_path_ = read_env_value("LOG_FILE_PATH");
+
+    if (!access_code_.empty()) {
+        const std::string registered_for = read_env_value("ACCESS_CODE_REGISTERED_FOR");
+        if (!registered_for.empty() && registered_for != agent_uid_) {
+            access_code_.clear();
+        }
+    }
 }
 
 std::string Settings::get_optional(const std::string& key, const std::string& default_value) const {
@@ -154,6 +161,7 @@ std::string Settings::log_file_path() const {
 void Settings::save_access_code(const std::string& access_code) {
     std::vector<std::string> lines;
     bool access_code_updated = false;
+    bool registered_for_updated = false;
 
     if (fs::exists(dotenv_path_)) {
         std::ifstream input(dotenv_path_);
@@ -166,6 +174,9 @@ void Settings::save_access_code(const std::string& access_code) {
             if (line.rfind("ACCESS_CODE=", 0) == 0) {
                 lines.emplace_back("ACCESS_CODE=" + access_code);
                 access_code_updated = true;
+            } else if (line.rfind("ACCESS_CODE_REGISTERED_FOR=", 0) == 0) {
+                lines.emplace_back("ACCESS_CODE_REGISTERED_FOR=" + agent_uid_);
+                registered_for_updated = true;
             } else {
                 lines.push_back(line);
             }
@@ -174,6 +185,9 @@ void Settings::save_access_code(const std::string& access_code) {
 
     if (!access_code_updated) {
         lines.emplace_back("ACCESS_CODE=" + access_code);
+    }
+    if (!registered_for_updated) {
+        lines.emplace_back("ACCESS_CODE_REGISTERED_FOR=" + agent_uid_);
     }
 
     std::ofstream output(dotenv_path_, std::ios::trunc);
