@@ -99,21 +99,15 @@ bool launch_replacement_process(const std::vector<std::string>& arguments) {
     CloseHandle(process_info.hProcess);
     return true;
 #else
-    const pid_t pid = fork();
-    if (pid < 0) {
-        return false;
+    std::vector<char*> exec_arguments;
+    exec_arguments.reserve(arguments.size() + 1);
+    for (const std::string& argument : arguments) {
+        exec_arguments.push_back(const_cast<char*>(argument.c_str()));
     }
-    if (pid == 0) {
-        std::vector<char*> exec_arguments;
-        exec_arguments.reserve(arguments.size() + 1);
-        for (const std::string& argument : arguments) {
-            exec_arguments.push_back(const_cast<char*>(argument.c_str()));
-        }
-        exec_arguments.push_back(nullptr);
-        execvp(exec_arguments[0], exec_arguments.data());
-        _exit(127);
-    }
-    return true;
+    exec_arguments.push_back(nullptr);
+
+    execvp(exec_arguments[0], exec_arguments.data());
+    return false;
 #endif
 }
 

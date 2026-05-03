@@ -6,7 +6,7 @@
     "windows": "type {path}",
     "macos": "cat {path}"
   },
-  "return_files": false,
+  "return_files": true,
   "restart_after": false,
   "parameters": {
     "path": {
