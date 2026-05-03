@@ -31,7 +31,46 @@
 ## Сваггер:
 Сваггер находиться в [этом](https://github.com/yarikpd/web_agent/blob/main/openapi.yaml) файле
 
-## Инструкия по сборке
+## Установка из готового исполняемого файла (GitHub Releases)
+
+1. Скачайте исполняемый файл для вашей платформы со страницы [Releases](https://github.com/yarikpd/web_agent/releases):
+   - `web_agent-linux` — для Linux
+   - `web_agent-macos` — для macOS
+   - `web_agent-windows` — для Windows
+
+2. Скачайте файл `.env.example` из репозитория и переименуйте его в `.env`, либо создайте `.env` вручную со следующим содержимым:
+   ```
+   API_URL=<url вашего сервера>
+   AGENT_UID=<идентификатор агента>
+   AGENT_DESCR=<описание агента>
+   JOBS_DIR=jobs
+   POLL_INTERVAL_SECONDS=5
+   THREAD_COUNT=5
+   SHOW_LOGS_IN_CONSOLE=FALSE
+   LOG_FILE_PATH="./logs.txt"
+   ```
+   Заполните `API_URL`, `AGENT_UID` и `AGENT_DESCR` реальными значениями.
+
+3. Создайте папку `jobs` рядом с исполняемым файлом. Скачайте примеры job-файлов из папки [`jobs/`](https://github.com/yarikpd/web_agent/tree/main/jobs) репозитория или создайте собственные.
+
+4. **Linux / macOS**: сделайте файл исполняемым:
+   ```bash
+   chmod +x web_agent-linux    # или web_agent-macos
+   ```
+   **macOS**: если Gatekeeper блокирует запуск, снимите атрибут карантина:
+   ```bash
+   xattr -d com.apple.quarantine web_agent-macos
+   ```
+   Либо откройте файл через ПКМ → «Открыть» в Finder.
+
+5. Запустите агента:
+   ```bash
+   ./web_agent-linux           # Linux
+   ./web_agent-macos           # macOS
+   web_agent-windows.exe       # Windows (командная строка)
+   ```
+
+## Инструкия по сборке (из исходников)
 Перед созданием проекта cmake убедитесь, что у вас установлен shure [meson](https://mesonbuild.com/):
 1) Для MacOs:
 ```bash
@@ -96,7 +135,46 @@ This project was implemented based on technical specifications and represents a 
 ## Swagger:
 Swagger is in [this](https://github.com/yarikpd/web_agent/blob/main/openapi.yaml ) file
 
-### Building
+## Installing from pre-built binary (GitHub Releases)
+
+1. Download the executable for your platform from the [Releases](https://github.com/yarikpd/web_agent/releases) page:
+   - `web_agent-linux` — for Linux
+   - `web_agent-macos` — for macOS
+   - `web_agent-windows.exe` — for Windows
+
+2. Download the `.env.example` file from the repository and rename it to `.env`, or create `.env` manually with the following content:
+   ```
+   API_URL=<your server URL>
+   AGENT_UID=<agent identifier>
+   AGENT_DESCR=<agent description>
+   JOBS_DIR=jobs
+   POLL_INTERVAL_SECONDS=5
+   THREAD_COUNT=5
+   SHOW_LOGS_IN_CONSOLE=FALSE
+   LOG_FILE_PATH="./logs.txt"
+   ```
+   Fill in `API_URL`, `AGENT_UID` and `AGENT_DESCR` with actual values.
+
+3. Create a `jobs` folder next to the executable. Download example job files from the [`jobs/`](https://github.com/yarikpd/web_agent/tree/main/jobs) folder in the repository or create your own.
+
+4. **Linux / macOS**: make the file executable:
+   ```bash
+   chmod +x web_agent-linux    # or web_agent-macos
+   ```
+   **macOS**: if Gatekeeper blocks the launch, remove the quarantine attribute:
+   ```bash
+   xattr -d com.apple.quarantine web_agent-macos
+   ```
+   Or open the file via Right Click → "Open" in Finder.
+
+5. Run the agent:
+   ```bash
+   ./web_agent-linux           # Linux
+   ./web_agent-macos           # macOS
+   web_agent-windows.exe       # Windows (command prompt)
+   ```
+
+### Building (from source)
 Before building cmake project, make shure you have installed [meson](https://mesonbuild.com/):
 1) For MacOs:
 ```bash
