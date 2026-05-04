@@ -96,6 +96,10 @@ sudo pacman -S meson
 5) Для Windows: 
 Follow instructions in [official documentations](https://mesonbuild.com/SimpleStart.html#windows1)
 
+## Создание job-файлов
+
+Подробное описание формата job-файлов, всех параметров и примеры см. в [JOBS-ru.md](docs/JOBS-ru.md).
+
 ## Роли
 Team Lead: Полосухин Ярослав
 
@@ -200,7 +204,11 @@ sudo pacman -S meson
 5) For Windows:
 Follow instructions in [official documentations](https://mesonbuild.com/SimpleStart.html#windows1)
 
-## Роли
+## Creating job files
+
+See [JOBS.md](docs/JOBS.md) for a detailed description of the job file format, all parameters, and examples.
+
+## Roles
 Team Lead: Polosukhin Yaroslav
 
 System Architect: Vakov Egor
